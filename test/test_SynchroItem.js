@@ -9,13 +9,13 @@ class TestClass extends SynchroItem {
         this.nonObserved = 'initialNon';
         this.observed_properties = ['prop1', 'prop2'];
     }
-    
+
     set prop1(value) { this._prop1 = value; this.dirty(); }
     get prop1() { return this._prop1; }
-    
+
     set prop2(value) { this._prop2 = value; this.dirty(); }
     get prop2() { return this._prop2; }
-    
+
     set nonObserved(value) { this._nonObserved = value; this.dirty(); }
     get nonObserved() { return this._nonObserved; }
 
@@ -24,59 +24,96 @@ class TestClass extends SynchroItem {
 };
 
 
-describe('SynchroItem', function() {
-    
+describe('SynchroItem', function () {
+
     let instance;
-    beforeEach(function() { instance = new TestClass(); });
+    beforeEach(function () { instance = new TestClass(); });
 
-    it('should emit change event for observed properties', function(done) {
-        let eventCount = 0;
-        const expectedEvents = [
-            { property: 'prop1', new_value: 'new1', old_value: 'initial1' },
-            { property: 'prop2', new_value: 'new2', old_value: 'initial2' }
-        ];
+    describe('notion handling', function () {
 
-        instance.on('change', (event) => {
-            const expected = expectedEvents[eventCount];
-            assert.strictEqual(event.property, expected.property, `Expected property ${expected.property}`);
-            assert.strictEqual(event.new_value, expected.new_value, `Expected new_value ${expected.new_value}`);
-            assert.strictEqual(event.old_value, expected.old_value, `Expected old_value ${expected.old_value}`);
-            eventCount++;
-            
-            if (eventCount === 2) {
+        it('Should set and get a notion', function () {
+
+            instance.set('testN', 'testValue');
+            assert.strictEqual(instance.get('testN'), 'testValue');
+        });
+
+        it('should emit a changed event when a notion is set', function (done) {
+            instance.on('changed', (event) => {
+                assert.strictEqual(event.property, 'testN');
+                assert.strictEqual(event.new_value, 'testValue');
+                assert.strictEqual(event.old_value, undefined);
                 done();
-            }
+            });
+
+            instance.set('testN', 'testValue');
         });
 
-        instance.prop1 = 'new1';
-        instance.prop2 = 'new2';
-    });
+        it('should update an existing notion, emitting a change event', function () {
 
-    it('should not emit change event for non-observed properties', function(done) {
-        let eventEmitted = false;
+            instance.set('testN', 'initialValue');
+            instance.on('changed', (event) => {
+                assert.strictEqual(event.property, 'testN');
+                assert.strictEqual(event.new_value, 'updatedValue');
+                assert.strictEqual(event.old_value, 'initialValue');
+            });
 
-        instance.on('change', () => {
-            eventEmitted = true;
+            instance.set('testN', 'updatedValue');
         });
 
-        instance.nonObserved = 'newNon';
-
-        // Wait briefly to ensure no event is emitted
-        setTimeout(() => {
-            assert.strictEqual(eventEmitted, false, 'No change event should be emitted for non-observed property');
-            done();
-        }, 50);
     });
 
-    it('should throw error for invalid observed properties', function() {
+    describe('subclassing', function () {
 
-        assert.throws(() => {
-            instance.observed_properties = 'an_array';
-        }, TypeError);
+        it('should emit changed event for observed properties', function (done) {
+            let eventCount = 0;
+            const expectedEvents = [
+                { property: 'prop1', new_value: 'new1', old_value: 'initial1' },
+                { property: 'prop2', new_value: 'new2', old_value: 'initial2' }
+            ];
 
-        assert.throws(() => {
-            instance.observed_properties = 'an_object';
-        }, TypeError);
+            instance.on('changed', (event) => {
+                const expected = expectedEvents[eventCount];
+                assert.strictEqual(event.property, expected.property, `Expected property ${expected.property}`);
+                assert.strictEqual(event.new_value, expected.new_value, `Expected new_value ${expected.new_value}`);
+                assert.strictEqual(event.old_value, expected.old_value, `Expected old_value ${expected.old_value}`);
+                eventCount++;
+
+                if (eventCount === 2) {
+                    done();
+                }
+            });
+
+            instance.prop1 = 'new1';
+            instance.prop2 = 'new2';
+        });
+
+        it('should not emit changed event for non-observed properties', function (done) {
+            let eventEmitted = false;
+
+            instance.on('changed', () => {
+                eventEmitted = true;
+            });
+
+            instance.nonObserved = 'newNon';
+
+            // Wait briefly to ensure no event is emitted
+            setTimeout(() => {
+                assert.strictEqual(eventEmitted, false, 'No changed event should be emitted for non-observed property');
+                done();
+            }, 50);
+        });
+
+        it('should throw error for invalid observed properties', function () {
+
+            assert.throws(() => {
+                instance.observed_properties = 'an_array';
+            }, TypeError);
+
+            assert.throws(() => {
+                instance.observed_properties = 'an_object';
+            }, TypeError);
+
+        });
 
     });
 

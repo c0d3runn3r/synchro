@@ -171,6 +171,18 @@ describe('SynchroItem', function () {
             assert.strictEqual(new_instance.prop1, 'initial1');
             assert.strictEqual(new_instance.prop2, 'initial2');
         });
+
+        it('.serialize() -> .deserialize() round trip', function () {
+
+            instance.set('testN', 'testValue', new Date("2023-01-01T00:00:00Z"));
+
+            const serialized = instance.serialize();
+            const new_instance = TestClass.deserialize(serialized);
+            assert.strictEqual(new_instance.id, 'my-test-id');
+            assert.strictEqual(new_instance.prop1, 'initial1');
+            assert.strictEqual(new_instance.prop2, 'initial2');
+            assert.strictEqual(new_instance.get('testN'), 'testValue');
+        });
     });
 
 });

@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "npx mocha"
+    "test": "npx mocha",
+    "docs": "npx jsdoc2md lib/*.js > docs/api.md"
   },
   "author": "c0d3runn3r",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "jsdoc-to-markdown": "^9.1.2",
     "mocha": "^11.7.1"
   }
 }

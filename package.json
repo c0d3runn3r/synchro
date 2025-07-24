@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx mocha",
-    "docs": "npx jsdoc2md lib/*.js > docs/api.md"
+    "docs": "npx jsdoc2md lib/*.js > docs/API.md"
   },
   "author": "c0d3runn3r",
   "license": "ISC",

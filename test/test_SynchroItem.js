@@ -32,15 +32,15 @@ describe('SynchroItem', function() {
     it('should emit change event for observed properties', function(done) {
         let eventCount = 0;
         const expectedEvents = [
-            { property: 'prop1', current_value: 'new1', previous_value: 'initial1' },
-            { property: 'prop2', current_value: 'new2', previous_value: 'initial2' }
+            { property: 'prop1', new_value: 'new1', old_value: 'initial1' },
+            { property: 'prop2', new_value: 'new2', old_value: 'initial2' }
         ];
 
         instance.on('change', (event) => {
             const expected = expectedEvents[eventCount];
             assert.strictEqual(event.property, expected.property, `Expected property ${expected.property}`);
-            assert.strictEqual(event.current_value, expected.current_value, `Expected current_value ${expected.current_value}`);
-            assert.strictEqual(event.previous_value, expected.previous_value, `Expected previous_value ${expected.previous_value}`);
+            assert.strictEqual(event.new_value, expected.new_value, `Expected new_value ${expected.new_value}`);
+            assert.strictEqual(event.old_value, expected.old_value, `Expected old_value ${expected.old_value}`);
             eventCount++;
             
             if (eventCount === 2) {

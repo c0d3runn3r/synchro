@@ -37,7 +37,7 @@ describe('SynchroItem', function () {
             assert.strictEqual(instance.get('testN'), 'testValue');
         });
 
-        it('should emit a changed event when a notion is set', function (done) {
+        it('.set() should create a new notion and emit a changed event when a notion is set', function (done) {
             instance.on('changed', (event) => {
                 assert.strictEqual(event.property, 'testN');
                 assert.strictEqual(event.new_value, 'testValue');
@@ -48,7 +48,7 @@ describe('SynchroItem', function () {
             instance.set('testN', 'testValue');
         });
 
-        it('should update an existing notion, emitting a change event', function () {
+        it('.set() should update an existing notion, emitting a change event', function () {
 
             instance.set('testN', 'initialValue');
             instance.on('changed', (event) => {
@@ -58,6 +58,18 @@ describe('SynchroItem', function () {
             });
 
             instance.set('testN', 'updatedValue');
+        });
+
+        it('.unset() should remove a notion and not emit a change event', function () {
+            instance.set('testN', 'testValue');
+            let eventEmitted = false;
+
+            instance.on('changed', () => {
+                eventEmitted = true;
+            });
+
+            instance.unset('testN');
+            assert.strictEqual(eventEmitted, false, 'No changed event should be emitted when a notion is unset');
         });
 
     });

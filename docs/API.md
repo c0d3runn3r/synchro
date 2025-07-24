@@ -260,7 +260,10 @@ Notions are handled separately and do not need to be checked here.
 **Kind**: global class  
 
 * [SynchroSet](#SynchroSet)
-    * [new SynchroSet(classname)](#new_SynchroSet_new)
+    * [new SynchroSet(my_class)](#new_SynchroSet_new)
+    * [.transmit](#SynchroSet+transmit)
+    * [.transmit](#SynchroSet+transmit) ⇒ <code>function</code>
+    * [.receive(str)](#SynchroSet+receive)
     * [.add(item)](#SynchroSet+add)
     * [.remove(item)](#SynchroSet+remove)
     * [.find(id)](#SynchroSet+find) ⇒ <code>Class</code>
@@ -270,13 +273,46 @@ Notions are handled separately and do not need to be checked here.
 
 <a name="new_SynchroSet_new"></a>
 
-### new SynchroSet(classname)
+### new SynchroSet(my_class)
 SynchroSet manages a class of objects
 
 
 | Param | Type | Description |
 | --- | --- | --- |
-| classname | <code>Class</code> | the class of objects we are managing |
+| my_class | <code>Class</code> | the class of objects we are managing |
+
+<a name="SynchroSet+transmit"></a>
+
+### synchroSet.transmit
+Set the transmit function to be used to send changes to remote listeners
+
+**Kind**: instance property of [<code>SynchroSet</code>](#SynchroSet)  
+**Throws**:
+
+- <code>TypeError</code> if the function is not a function
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| fn | <code>function</code> | function that takes an event name and payload to transmit. Set to null to disable transmission. |
+
+<a name="SynchroSet+transmit"></a>
+
+### synchroSet.transmit ⇒ <code>function</code>
+Get the transmit function
+
+**Kind**: instance property of [<code>SynchroSet</code>](#SynchroSet)  
+**Returns**: <code>function</code> - the transmit function  
+<a name="SynchroSet+receive"></a>
+
+### synchroSet.receive(str)
+Handle incoming events from remote listeners
+
+**Kind**: instance method of [<code>SynchroSet</code>](#SynchroSet)  
+
+| Param | Type |
+| --- | --- |
+| str | <code>string</code> | 
 
 <a name="SynchroSet+add"></a>
 
@@ -301,9 +337,9 @@ Remove an item from the master set
 
 **Kind**: instance method of [<code>SynchroSet</code>](#SynchroSet)  
 
-| Param | Type |
-| --- | --- |
-| item | <code>Class</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| item | <code>Class</code> \| <code>string</code> | the item to remove, or its ID |
 
 <a name="SynchroSet+find"></a>
 

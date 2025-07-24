@@ -3,7 +3,7 @@ const SynchroItem = require('../lib/SynchroItem');
 
 class TestClass extends SynchroItem {
     constructor() {
-        super();
+        super('my-test-id');
         this.prop1 = 'initial1';
         this.prop2 = 'initial2';
         this.nonObserved = 'initialNon';
@@ -127,6 +127,50 @@ describe('SynchroItem', function () {
 
         });
 
+    });
+
+    describe('serialization', function () {
+
+        it('.toObject() properly serializes both properties and notions', function () {
+
+            instance.set('testN', 'testValue', new Date("2023-01-01T00:00:00Z"));
+            const obj = instance.toObject();
+            assert.deepStrictEqual(obj, {
+                id: 'my-test-id',
+                type: 'TestClass',
+                notions: {
+                    testN: {
+                        name: 'testN',
+                        value: 'testValue',
+                        timestamp: new Date("2023-01-01T00:00:00.000Z")
+                    }
+                },
+                properties: { prop1: 'initial1', prop2: 'initial2' }
+            });
+
+        });
+
+        it('.fromObject() creates an instance from a serialized object', function () {
+
+            const obj = {
+                id: 'my-test-id',
+                type: 'TestClass',
+                notions: {
+                    testN: {
+                        name: 'testN',
+                        value: 'testValue',
+                        timestamp: new Date("2023-01-01T00:00:00Z")
+                    }
+                },
+                properties: { prop1: 'initial1', prop2: 'initial2' }
+            };
+
+            const new_instance = TestClass.fromObject(obj);
+            assert.strictEqual(new_instance.id, 'my-test-id');
+            assert.strictEqual(new_instance.get('testN'), 'testValue');
+            assert.strictEqual(new_instance.prop1, 'initial1');
+            assert.strictEqual(new_instance.prop2, 'initial2');
+        });
     });
 
 });

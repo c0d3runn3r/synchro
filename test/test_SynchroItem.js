@@ -18,6 +18,9 @@ class TestClass extends SynchroItem {
     
     set nonObserved(value) { this._nonObserved = value; this.dirty(); }
     get nonObserved() { return this._nonObserved; }
+
+    get an_array() { return ['a', 'b', 'c']; }
+    get an_object() { return { key: 'value' }; }
 };
 
 
@@ -63,6 +66,18 @@ describe('SynchroItem', function() {
             assert.strictEqual(eventEmitted, false, 'No change event should be emitted for non-observed property');
             done();
         }, 50);
+    });
+
+    it('should throw error for invalid observed properties', function() {
+
+        assert.throws(() => {
+            instance.observed_properties = 'an_array';
+        }, TypeError);
+
+        assert.throws(() => {
+            instance.observed_properties = 'an_object';
+        }, TypeError);
+
     });
 
 });

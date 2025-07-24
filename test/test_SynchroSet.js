@@ -9,6 +9,8 @@ class TestItem extends SynchroItem {
     constructor(id) {
         super();
         this.#id = id;
+
+        this.observed_properties = ['name'];
     }
 
     get id() {
@@ -61,5 +63,34 @@ describe('SynchroSet', function () {
 
         test_set.add(test_item);
         test_set.remove(test_item);
+    });
+
+    it('should emit a SynchroSet#changed event when an item changes', function (done) {
+        test_set.add(test_item);
+        test_set.on('changed', ({item, event}) => {
+
+            assert.strictEqual(item, test_item);
+            assert.strictEqual(event.property, 'name');
+            assert.strictEqual(event.old_value, undefined);
+            assert.strictEqual(event.new_value, 'new name');
+            done();
+        });
+
+        test_item.name = 'new name';
+    });
+
+    it('should emit a SynchroSet#changed event when a notion is changed', function (done) {
+        test_set.add(test_item);
+
+        test_set.on('changed', ({item, event}) => {
+
+            assert.strictEqual(item, test_item);
+            assert.strictEqual(event.property, 'nickname');
+            assert.strictEqual(event.old_value, undefined);
+            assert.strictEqual(event.new_value, 'benny');
+            done();
+        });
+
+        test_item.set('nickname', 'benny');
     });
 });

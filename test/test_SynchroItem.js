@@ -72,9 +72,22 @@ describe('SynchroItem', function () {
             assert.strictEqual(eventEmitted, false, 'No changed event should be emitted when a notion is unset');
         });
 
+        it('.set() should emit named events', function (done) {
+            
+            instance.set('testN', 'initialValue');
+            instance.on('changed:testN', (event) => {
+                assert.strictEqual(event.property, 'testN');
+                assert.strictEqual(event.new_value, 'newValue');
+                assert.strictEqual(event.old_value, 'initialValue');
+                done();
+            });
+
+            instance.set('testN', 'newValue');
+        });
+
     });
 
-    describe('subclassing', function () {
+    describe('property observing', function () {
 
         it('should emit changed event for observed properties', function (done) {
             let eventCount = 0;
@@ -125,6 +138,18 @@ describe('SynchroItem', function () {
                 instance.observed_properties = 'an_object';
             }, TypeError);
 
+        });
+
+        it('should emit named events for observed properties', function (done) {
+
+            instance.on('changed:prop1', (event) => {
+                assert.strictEqual(event.property, 'prop1');
+                assert.strictEqual(event.new_value, 'new1');
+                assert.strictEqual(event.old_value, 'initial1');
+                done();
+            });
+
+            instance.prop1 = 'new1';
         });
 
     });

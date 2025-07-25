@@ -128,7 +128,7 @@ describe('SynchroSet', function () {
 
         it("should transmit 'changed' events when a tracked property changes", function (done) {
 
-            const expected = {"event_name":"changed","change":{"property":"name","old_value":"old name","new_value":"new name"}};
+            const expected = {"event_name":"changed","item":{"id":"test-id"},"change":{"property":"name","old_value":"old name","new_value":"new name"}};
             test_item.name = 'old name';
             test_set.add(test_item);
             test_set.transmit = (payload) => {
@@ -142,7 +142,7 @@ describe('SynchroSet', function () {
 
         it("should transmit 'changed' events when a notion changes", function (done) {
 
-            const expected = {"event_name":"changed","change":{"property":"nickname","new_value":"benny","new_timestamp":"2025-07-24T22:45:58.729Z"}};
+            const expected = {"event_name":"changed","item":{"id":"test-id"},"change":{"property":"nickname","new_value":"benny","new_timestamp":"2025-07-24T22:45:58.729Z"}};
             test_set.add(test_item);
             test_set.transmit = (payload) => {
 
@@ -152,5 +152,49 @@ describe('SynchroSet', function () {
 
             test_item.set('nickname', 'benny', new Date('2025-07-24T22:45:58.729Z'));
         });
+    });
+
+    describe('reception', function () {
+
+        it("should handle 'added' events", function () {
+
+            const payload = `{"event_name":"added","item":{"id":"test-id","type":"TestItem","notions":{},"properties":{}}}`;
+            test_set.receive(payload);
+            assert.strictEqual(test_set.find('test-id').id, 'test-id');
+        });
+
+        it("should handle 'removed' events", function () {
+
+            test_set.add(test_item);
+            const payload = `{"event_name":"removed","item":{"id":"test-id"}}`;
+            test_set.receive(payload);
+            assert.strictEqual(test_set.find('test-id'), undefined);
+        });
+
+        it("should throw if a 'removed' event is received for an item that does not exist", function () {
+
+            const payload = `{"event_name":"removed","item":{"id":"non-existent-id"}}`;
+            assert.throws(() => test_set.receive(payload), {
+                message: /Item with ID non-existent-id not found/
+            });
+        });
+
+        it("should handle 'changed' events for properties", function () {
+
+            test_set.add(test_item);
+            test_item.name = 'old name';
+            const payload = `{"event_name":"changed", "item":{"id":"test-id"}, "change":{"property":"name","old_value":"old name","new_value":"new name"}}`;
+            test_set.receive(payload);
+            assert.strictEqual(test_item.name, 'new name');
+        });
+
+        it("should handle 'changed' events for notions", function () {
+
+            test_set.add(test_item);
+            const payload = `{"event_name":"changed","item":{"id":"test-id"},"change":{"property":"nickname","new_value":"benny","new_timestamp":"2025-07-24T22:45:58.729Z"}}`;
+            test_set.receive(payload);
+            assert.strictEqual(test_item.get('nickname'), 'benny');
+        });
+
     });
 });

@@ -27,12 +27,11 @@ describe('Examples', function () {
         const slave = new SynchroSet(Bot);
         master.transmit = (payload) => { slave.receive(payload); };
 
-
-        // A bot added the master should exist in the slave
+        // A bot added the master appears in the slave
         master.add(new Bot('bot-123'));
         assert.ok(slave.all().length == 1);
 
-        // // But wait, we wanted to watch it happen!
+        // But wait, we wanted to watch it happen - on both ends
         master.on('added', (event) => { assert.equal(event.item.id, 'bot-456'); });
         slave.on('added', (event) => { assert.equal(event.item.id, 'bot-456'); });
         master.add(new Bot('bot-456'));

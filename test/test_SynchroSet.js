@@ -1,6 +1,7 @@
 const assert = require('assert');
 const SynchroItem = require('../lib/SynchroItem');
 const SynchroSet = require('../lib/SynchroSet');
+const { Test } = require('mocha');
 
 class TestItem extends SynchroItem {
 
@@ -37,15 +38,31 @@ describe('SynchroSet', function () {
 
     describe('basic set operations', function () {
 
-        it('should accept a test item and add it to the set', function () {
+        it('.add() should accept an item of the proper type', function () {
 
             test_set.add(test_item);
             assert.strictEqual(test_set.find(test_item.id), test_item);
         });
 
-        it('should throw an error if a non-instance of the managed class is added', function () {
+        it('.add() should throw an error if a non-instance of the managed class is added', function () {
 
             assert.throws(() => test_set.add({}), TypeError);
+        });
+
+        it('.find() should find an item by ID', function () {
+            test_set.add(test_item);
+            assert.strictEqual(test_set.find(test_item.id), test_item);
+        });
+
+        it('.find() should return undefined if an item is not found by ID', function () {
+            assert.strictEqual(test_set.find('non-existent-id'), undefined);
+        });
+
+        it('.all() should return all items in the set', function () {
+            test_set.add(test_item);
+            const all_items = test_set.all();
+            assert.strictEqual(all_items.length, 1);
+            assert.strictEqual(all_items[0], test_item);
         });
     });
 
@@ -97,6 +114,8 @@ describe('SynchroSet', function () {
 
             test_item.set('nickname', 'benny');
         });
+
+
     });
 
     describe('transmission', function () {

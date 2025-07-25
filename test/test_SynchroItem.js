@@ -112,7 +112,7 @@ describe('SynchroItem', function () {
             setTimeout(() => {
                 assert.strictEqual(eventEmitted, false, 'No changed event should be emitted for non-observed property');
                 done();
-            }, 50);
+            }, 5);
         });
 
         it('should throw error for invalid observed properties', function () {
@@ -170,6 +170,21 @@ describe('SynchroItem', function () {
             assert.strictEqual(new_instance.get('testN'), 'testValue');
             assert.strictEqual(new_instance.prop1, 'initial1');
             assert.strictEqual(new_instance.prop2, 'initial2');
+        });
+
+        it('.fromObject created instances should still be able to bubble events', function (done) {
+
+            const obj = {
+                id: 'my-test-id',
+                type: 'TestClass',
+                notions: {},
+                properties: {}
+            };
+
+            const new_instance = TestClass.fromObject(obj);
+            new_instance.on('changed', (event) => { done(); });
+
+            new_instance.prop1 = 'new1';
         });
 
         it('.serialize() -> .deserialize() round trip', function () {

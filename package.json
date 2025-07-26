@@ -6,6 +6,10 @@
     "test": "npx mocha",
     "docs": "npx jsdoc2md lib/*.js > docs/API.md"
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "author": "c0d3runn3r",
   "license": "ISC",
   "description": "",

@@ -5,7 +5,7 @@ Welcome to Synchro, a zero dependency NodeJS library designed to synchronize set
 Synchro provides two classes: `SynchroItem`, which can be used on it's own to observe property changes, and `SynchroSet` to synchronize sets of items by passing messages.
 
 
-## Example using ad-hot properties
+## Example using ad-hoc properties
 ```nodejs
     const {SynchroSet, SynchroItem} = require("@novadynamics/synchro");
 

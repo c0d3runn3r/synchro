@@ -215,5 +215,19 @@ describe('SynchroSet', function () {
             assert.strictEqual(test_item.get('nickname'), 'benny');
         });
 
+        it('should have a last_receive_age_seconds that returns the age of the last receive', function () {
+
+            test_set.receive(`{"event_name":"added","item":{"id":"test-id","type":"TestItem","notions":{},"properties":{}}}`);
+
+            const age = test_set.last_receive_age_seconds;
+            assert.ok(age < 1);
+        });
+
+        it('should return Infinity for last_receive_age_seconds if no receive has occurred', function () {
+
+            const age = test_set.last_receive_age_seconds;
+            assert.strictEqual(age, Infinity);
+        });
+
     });
 });

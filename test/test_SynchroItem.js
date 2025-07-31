@@ -60,6 +60,15 @@ describe('SynchroItem', function () {
             instance.set('testN', 'updatedValue');
         });
 
+        it('.set() should not emit a change event if the value and timestamp are the same', function () {
+
+            instance.set('testN', 'testValue', "2023-01-01T00:00:00Z");
+            instance.on('changed', () => {
+                assert.fail('Change event should not be emitted when value and timestamp are the same');
+            });
+            instance.set('testN', 'testValue', "2023-01-01T00:00:00Z");
+        });
+
         it('.unset() should remove a notion and not emit a change event', function () {
             instance.set('testN', 'testValue');
             let eventEmitted = false;

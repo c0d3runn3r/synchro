@@ -234,4 +234,57 @@ describe('SynchroItem', function () {
         });
     });
 
+    describe('other functionality', function () {
+
+        it('coerce_to() should coerce our properties to the properties of the target item', function () {
+            const target = new TestClass();
+            target.prop1 = 'targetValue1';
+            target.prop2 = 'targetValue2';
+
+            instance.coerce_to(target);
+            assert.strictEqual(instance.prop1, 'targetValue1');
+            assert.strictEqual(instance.prop2, 'targetValue2');
+        });
+
+        it('coerce_to() should not change non-observed properties', function () {
+            const target = new TestClass();
+            target.nonObserved = 'targetNonValue';
+
+            instance.coerce_to(target);
+            assert.strictEqual(instance.nonObserved, 'initialNon'); // Should remain unchanged
+        });
+
+        it('coerce_to() should add any new notions', function () {
+            const target = new TestClass();
+            target.set('testN', 'targetValue', new Date('2025-07-28T16:47:00Z'));
+
+            instance.coerce_to(target);
+            const notion = instance.notion('testN');
+            assert.ok(notion);
+            assert.strictEqual(notion.value, 'targetValue');
+            assert.strictEqual(notion.timestamp.toISOString(), '2025-07-28T16:47:00.000Z');
+        });
+
+        it('coerce_to() should remove any notions that are not in the target', function () {
+            instance.set('testN', 'testValue');
+            const target = new TestClass(); // No notions set
+
+            instance.coerce_to(target);
+            assert.strictEqual(instance.get('testN'), undefined); // Should be removed
+        });
+
+        it('coerce_to() should update existing notions', function () {
+            instance.set('testN', 'initialValue', new Date('2025-07-28T16:47:00Z'));
+            
+            const target = new TestClass();
+            target.set('testN', 'updatedValue', new Date('2025-07-28T16:47:01Z'));
+
+            instance.coerce_to(target);
+            const notion = instance.notion('testN');
+            assert.strictEqual(notion.value, 'updatedValue');
+            assert.strictEqual(notion.timestamp.toISOString(), '2025-07-28T16:47:01.000Z');
+        });
+
+    });
+
 });

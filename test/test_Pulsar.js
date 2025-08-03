@@ -7,7 +7,7 @@ describe('Pulsar', function () {
 
     let pulsar, ss, result;
     beforeEach(function () {
-        pulsar = new Pulsar();
+        pulsar = new Pulsar({send_strings: false});
         pulsar.transmit = (payload) => { result = payload; };
         ss = new SynchroSet();
         ss.transmit = pulsar;

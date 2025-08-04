@@ -233,34 +233,34 @@ describe('SynchroSet', function () {
 
 	describe('other functionality', function () {
 
-		it('coerce_set_to() should add any missing items from another SynchroSet', function () {
+		it('update_set_to() should add any missing items from another SynchroSet', function () {
 			const other_set = new SynchroSet(TestItem);
 			const other_item = new TestItem('other-id');
 			other_item.name = 'other name';
 			other_set.add(other_item);
 
-			test_set.coerce_set_to(other_set.all());
+			test_set.update_set_to(other_set.all());
 			assert.strictEqual(test_set.find('other-id').name, 'other name');
 		});
 
-		it('coerce_set_to() should update existing items in the target set', function () {
+		it('update_set_to() should update existing items in the target set', function () {
 			const other_set = new SynchroSet(TestItem);
 			const other_item = new TestItem('other-id');
 			other_item.name = 'other name';
 			other_set.add(other_item);
 
-			test_set.coerce_set_to(other_set.all());
+			test_set.update_set_to(other_set.all());
 			assert.strictEqual(test_set.find('other-id').name, 'other name');
 		});
 
-		it('coerce_set_to() should remove items from our set that are not in the target set', function () {
+		it('update_set_to() should remove items from our set that are not in the target set', function () {
 			const other_set = new SynchroSet(TestItem);
 			const other_item = new TestItem('other-id');
 			other_item.name = 'other name';
 			other_set.add(other_item);
 
 			test_set.add(new TestItem('test-id'));
-			test_set.coerce_set_to(other_set.all());
+			test_set.update_set_to(other_set.all());
 			assert.strictEqual(test_set.find('test-id'), undefined);
 		});
 

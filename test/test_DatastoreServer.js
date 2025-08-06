@@ -15,7 +15,7 @@ describe('DatastoreServer', function () {
         synchroset = new SynchroSet(Dog);
         server = new DatastoreServer({
             datastore: datastore,
-            base_path: 'test.dogs',
+            base_path: 'test',
             synchroset: synchroset,
             update_intervals: [10],
             allow_empty_transmissions: true
@@ -34,11 +34,16 @@ describe('DatastoreServer', function () {
             assert.strictEqual((await datastore.get('test.dogs.pulsars.10s')).length, 0);
         });
 
+        it('constructor creates a classname endpoint with the managed class name', async function () {
+
+            assert.strictEqual(await datastore.get('test.dogs.classname'), 'Dog');
+        });
+
         it('constructor with multiple custom update intervals create multiple update endpoints', async function () {
 
             const server = new DatastoreServer({
                 datastore: datastore,
-                base_path: 'test.dogs',
+                base_path: 'test',
                 synchroset: synchroset,
                 update_intervals: [0.1, 0.5, 1, 10],
                 allow_empty_transmissions: true
@@ -72,7 +77,7 @@ describe('DatastoreServer', function () {
             datastore = new Entangld();
             server = new DatastoreServer({
                 datastore: datastore,
-                base_path: 'test.dogs',
+                base_path: 'test',
                 synchroset: synchroset,
                 update_intervals: [0.1], // 100ms
                 allow_empty_transmissions: true

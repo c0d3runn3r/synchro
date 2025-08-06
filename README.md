@@ -2,7 +2,7 @@
 <img src="mascot.jpg" width="200" alt="Synchro Mascot" style="float: left; margin-right: 15px; margin-bottom: 10px;">
 Welcome to Synchro, a zero dependency NodeJS library designed to synchronize sets of objects across different locations using message passing, checksums, and just a pinch of magic. 
 
-Synchro provides two classes: `SynchroItem`, which can be used on it's own to observe property changes, and `SynchroSet` to synchronize sets of items by passing messages.
+Synchro provides `SynchroItem`, which can be used on its own to observe property changes, and `SynchroSet` to synchronize sets of items by passing messages. `Pulsar` coalesces updates into low bandwith bundles and sends them at specified intervals, also functioning as a sort of ping so you can know if your client and server are connected.  `DatastoreServer` will automatically wire everything up to run over Pulsars using a datastore (like [Entangld](https://www.npmjs.com/package/entangld)).
 
 
 ## Example using ad-hoc properties
@@ -77,6 +77,12 @@ Property observation is built in to SynchroItem subclasses, it works like this:
     o.on("changed:name",(event)=>{ /* event.old_value, event.new_value, etc */});
 
 ```
+
+## How is this different from Entangld?  
+Entangld synchronizes endpoints, but does not provide tools for managing discrete objects.  So if you put a Dog into Entangld, the thing you get out won't be a Dog anymore.  Synchro makes it so that the thing going in is also the thing going out.  Synchro also causes the two objects to be synchronized, so a change to one Dog will happen to the other Dog, and native Nodejs events work magically on both ends.  Synchro does all of this using extremely low bandwidth, thanks to Pulsars.  
+
+## DatastoreServer/Client: using Synchro over a datastore
+The `DatastoreServer` and `DatastoreClient` classes in this library provide a uniform way to use Synchro functionality over a datastore, i.e. a service that provides get/set functionality.  While Entangld uses subscriptions, these can be somewhat fragile over a network; and managing this fragility is complex, especially without accidentally making multiple subscriptions.  This may be a well-solved problem with services like `Redis`, but rather than creating a complex state engine I simply made a polling loop that polls the Pulsar.  This is not really the bad thing that it sounds since it is extremely robust, uses almost no bandwidth when nothing has changed, and only costs us "realtime-ness" by degree since we are using Pulsars anyway.  It also means we can use datastore services that do not support pub/sub.  The tradeoff is that for a Pulsar interval of `n` seconds, our data now has a limiting case lag of `2n` seconds (since we may poll right after the update).
 
 ## Installation
 ```bash

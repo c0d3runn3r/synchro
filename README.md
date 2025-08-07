@@ -230,9 +230,10 @@ For detailed API documentation, see [docs/API.md](docs/API.md).
 ## 🚧 TODO
 - [x] Add a test (that fails) for when we apply a payload that is not needed
 - [x] Update SynchroSet to be able to generate checksums
-- [ ] Update Pulsar so it shares before and after checksums
-- [ ] Update the client so it checks before/after checksums and only applies needed payloads
-- [ ] Make sure the test from part 1 passes
+- [x] Update Pulsar so it shares before and after checksums
+- [x] Update the client so it checks before/after checksums and only applies needed payloads
+- [x] Remove unneeded synchroset event
+- [x] Make sure the test from part 1 passes
 - [ ] Capture out-of-sync problems and refresh (write a test, update the client, etc)
 
 ## License

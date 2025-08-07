@@ -4,6 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "npx mocha",
+    "test:unit": "npx mocha test/test_*.js --grep -v \"integrate|<->\"",
+    "test:integration": "npx mocha test/test_integrate_*.js",
+    "test:examples": "npx mocha test/test_Examples.js",
     "docs": "npx jsdoc2md lib/*.js > docs/API.md"
   },
   "publishConfig": {
@@ -13,6 +16,23 @@
   "author": "c0d3runn3r",
   "license": "ISC",
   "description": "",
+  "testing": {
+    "framework": "mocha",
+    "convention": "For class X in lib/X.js, tests are in test/test_X.js",
+    "categories": {
+      "unit": "Individual class tests (test/test_*.js, excludes integration)",
+      "integration": "Cross-class integration tests (test/test_integrate_*.js)",
+      "examples": "Usage examples and documentation tests (test/test_Examples.js)"
+    },
+    "coverage": {
+      "DatastoreClient": "test/test_DatastoreClient.js",
+      "DatastoreServer": "test/test_DatastoreServer.js",
+      "Notion": "test/test_Notion.js",
+      "Pulsar": "test/test_Pulsar.js",
+      "SynchroItem": "test/test_SynchroItem.js",
+      "SynchroSet": "test/test_SynchroSet.js"
+    }
+  },
   "devDependencies": {
     "entangld": "^2.4.1",
     "jsdoc-to-markdown": "^9.1.2",

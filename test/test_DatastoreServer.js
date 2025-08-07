@@ -22,6 +22,16 @@ describe('DatastoreServer', function () {
         });
     });
 
+    afterEach(function () {
+
+        if (server && server.running) {
+            server.stop();
+        }
+        datastore = null;
+        server = null;
+        synchroset = null;
+    });
+
     describe('constructor', function () {
 
         it('constructing with an invalid update_intervals throws', function () {
@@ -93,7 +103,8 @@ describe('DatastoreServer', function () {
             // Wait 120ms to ensure the pulsar has time to transmit
             await new Promise(resolve => setTimeout(resolve, 120));
             const result = await datastore.get('test.dogs.pulsars.100ms');
-            assert.deepStrictEqual(JSON.parse(result[0]), {"event_name":"added","item":{"id":"dog1","type":"Dog","notions":{},"properties":{}}});
+            // With checksums enabled, result[0] is metadata, result[1] is the actual event
+            assert.deepStrictEqual(JSON.parse(result[1]), {"event_name":"added","item":{"id":"dog1","type":"Dog","notions":{},"properties":{}}});
             server.stop();
         });
     }); 

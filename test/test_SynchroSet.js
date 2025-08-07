@@ -228,6 +228,63 @@ describe('SynchroSet', function () {
 			const age = test_set.last_receive_age_seconds;
 			assert.strictEqual(age, Infinity);
 		});
+	});
+	describe('.checksum', function () {
+
+		it('should generate a deterministic checksum for the set', function () {
+			test_set.add(test_item);
+			const checksum = test_set.checksum;
+
+			assert.strictEqual(typeof checksum, 'string');
+			assert.strictEqual(checksum.length, 64); // SHA256 hex string length
+
+			// Same set should produce same checksum
+			const other_set = new SynchroSet(TestItem);
+			other_set.add(test_item);
+			assert.strictEqual(test_set.checksum, other_set.checksum);
+		});
+
+		it('should invalidate checksum when set changes', function () {
+			const empty_checksum = test_set.checksum;
+
+			// Adding item should change checksum
+			test_set.add(test_item);
+			assert.notStrictEqual(test_set.checksum, empty_checksum);
+
+			// Changing item should change checksum
+			const with_item_checksum = test_set.checksum;
+			test_item.name = 'changed name';
+			assert.notStrictEqual(test_set.checksum, with_item_checksum);
+		});
+
+		it('update_set_to() between sets should result in identical checksums', function () {
+			// Create source set with 5 items, each with properties and notions
+			const source_set = new SynchroSet(TestItem);
+
+			for (let i = 1; i <= 5; i++) {
+				const item = new TestItem(`item-${i}`);
+				item.name = `Name ${i}`;
+				item.set('nickname', `Nick${i}`, new Date(`2023-01-0${i}T00:00:00Z`));
+				item.set('status', i % 2 === 0 ? 'active' : 'inactive');
+				source_set.add(item);
+			}
+
+			const original_checksum = source_set.checksum;
+
+			// Create new empty set and update it to match source
+			const target_set = new SynchroSet(TestItem);
+			target_set.update_set_to(source_set.all());
+
+			// Checksums should be identical
+			assert.strictEqual(target_set.checksum, original_checksum);
+
+			// Verify the data was actually copied
+			assert.strictEqual(target_set.all().length, 5);
+			const item3 = target_set.find('item-3');
+			assert.strictEqual(item3.name, 'Name 3');
+			assert.strictEqual(item3.get('nickname'), 'Nick3');
+			assert.strictEqual(item3.get('status'), 'inactive');
+		});
 
 	});
 

@@ -287,4 +287,67 @@ describe('SynchroItem', function () {
 
     });
 
+    describe('checksum functionality', function () {
+
+        it('should generate a deterministic checksum', function () {
+            const checksum = instance.checksum;
+            assert.strictEqual(typeof checksum, 'string');
+            assert.strictEqual(checksum.length, 64); // SHA256 hex string length
+            
+            // Same state should produce same checksum
+            const instance2 = new TestClass();
+            assert.strictEqual(instance.checksum, instance2.checksum);
+
+            // Now change the properties of the two instances and make sure checksums differ
+            instance.prop1 = 'changed1';
+            instance2.prop1 = 'changed2';
+
+            assert.notStrictEqual(instance.checksum, instance2.checksum);
+
+            // Make the properties the same again
+            instance.prop1 = 'changed1';
+            instance.prop2 = { this: 'is', a: 'test', with: { nested: 123456.789 } };
+            instance2.prop1 = 'changed1';
+            instance2.prop2 = { this: 'is', a: 'test', with: { nested: 123456.789 } };
+
+            assert.strictEqual(instance.checksum, instance2.checksum);
+        });
+
+        it('should invalidate checksum when state changes', function () {
+            const originalChecksum = instance.checksum;
+            
+            // Property change should invalidate
+            instance.prop1 = 'changed_value';
+            assert.notStrictEqual(instance.checksum, originalChecksum);
+            
+            // Notion change should invalidate
+            const newChecksum = instance.checksum;
+            instance.set('testN', 'test_value');
+            assert.notStrictEqual(instance.checksum, newChecksum);
+        });
+
+        it('should be deterministic regardless of order', function () {
+            const instance1 = new TestClass();
+            instance1.set('notionA', 'valueA');
+            instance1.set('notionB', 'valueB');
+            
+            const instance2 = new TestClass();
+            instance2.set('notionB', 'valueB');
+            instance2.set('notionA', 'valueA');
+            
+            assert.strictEqual(instance1.checksum, instance2.checksum);
+        });
+
+        it('should include timestamps in checksum calculation', function () {
+            const instance1 = new TestClass();
+            const instance2 = new TestClass();
+            
+            instance1.set('testN', 'same_value', new Date('2023-01-01T00:00:00Z'));
+            instance2.set('testN', 'same_value', new Date('2023-01-01T00:00:01Z'));
+            
+            assert.notStrictEqual(instance1.checksum, instance2.checksum);
+        });
+
+    });
+
 });

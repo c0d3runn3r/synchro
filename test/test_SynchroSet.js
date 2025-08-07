@@ -115,6 +115,16 @@ describe('SynchroSet', function () {
 			test_item.set('nickname', 'benny');
 		});
 
+		it("should emit SynchroSet#receive_checksum_mismatch on receive when checksums do not match", function (done) {
+			test_set.add(test_item);
+			const payload = `{"event_name":"changed","item":{"id":"test-id"},"change":{"property":"nickname","new_value":"benny","new_timestamp":"2025-07-24T22:45:58.729Z"}}`;
+			test_set.on('receive_checksum_mismatch', ({ expected, actual }) => {
+				assert.strictEqual(expected, 'invalid_checksum');
+				assert.notStrictEqual(actual, 'invalid_checksum');
+				done();
+			});
+			test_set.receive(payload, 'invalid_checksum');
+		});
 
 	});
 
@@ -228,6 +238,22 @@ describe('SynchroSet', function () {
 			const age = test_set.last_receive_age_seconds;
 			assert.strictEqual(age, Infinity);
 		});
+
+		it('should ignore comment events', function () {
+			test_set.add(test_item);
+			const initialCount = test_set.all().length;
+
+			test_set.receive(JSON.stringify({
+				event_name: 'comment',
+				_metadata: true,
+				start_checksum: 'abc123',
+				end_checksum: 'def456'
+			}));
+
+			assert.strictEqual(test_set.all().length, initialCount);
+		});
+
+
 	});
 	describe('.checksum', function () {
 
@@ -322,4 +348,5 @@ describe('SynchroSet', function () {
 		});
 
 	});
+
 });

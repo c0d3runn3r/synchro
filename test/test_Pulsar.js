@@ -7,7 +7,7 @@ describe('Pulsar', function () {
 
     let pulsar, ss, result;
     beforeEach(function () {
-        pulsar = new Pulsar({send_strings: false});
+        pulsar = new Pulsar({include_checksums: false});
         pulsar.transmit = (payload) => { result = payload; };
         ss = new SynchroSet();
         ss.transmit = pulsar;
@@ -103,6 +103,57 @@ describe('Pulsar', function () {
         const item = new SynchroItem('item1');
         ss.add(item);
 
+    });
+
+    it('should include checksum metadata when include_checksums is enabled', function () {
+        // Create a new Pulsar with checksums enabled
+        const p = new Pulsar({include_checksums: true});
+        let checksumResult;
+        p.transmit = (payload) => { checksumResult = payload; };
+        
+        const s = new SynchroSet();
+        s.transmit = p;
+
+        const item = new SynchroItem('item1');
+        s.add(item);
+        p.trigger();
+
+        // Should have 2 elements: metadata comment first, then the actual event
+        assert.strictEqual(checksumResult.length, 2);
+        
+        // First element should be the checksum metadata
+        const metadata = JSON.parse(checksumResult[0]);
+        assert.strictEqual(metadata.event_name, 'comment');
+        assert.strictEqual(metadata._metadata, true);
+        assert.ok(metadata.start_checksum);
+        assert.ok(metadata.end_checksum);
+        
+        // Second element should be the actual event
+        const event = JSON.parse(checksumResult[1]);
+        assert.strictEqual(event.event_name, 'added');
+        assert.strictEqual(event.item.id, 'item1');
+    });
+
+    it('should not include checksum metadata when include_checksums is disabled', function () {
+        // This is already tested in the existing tests, but let's be explicit
+        const p = new Pulsar({include_checksums: false});
+        let noChecksumResult;
+        p.transmit = (payload) => { noChecksumResult = payload; };
+        
+        const s = new SynchroSet();
+        s.transmit = p;
+
+        const item = new SynchroItem('item1');
+        s.add(item);
+        p.trigger();
+
+        // Should have 1 element: just the actual event
+        assert.strictEqual(noChecksumResult.length, 1);
+        
+        // Should be the actual event, not metadata
+        const event = JSON.parse(noChecksumResult[0]);
+        assert.strictEqual(event.event_name, 'added');
+        assert.strictEqual(event.item.id, 'item1');
     });
 
 });

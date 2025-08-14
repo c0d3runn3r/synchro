@@ -242,4 +242,4 @@ ISC
 
 ---
 
-*Built with ❤️ for developers who want object synchronization that just works.*
+*E 'n la sua volontade è nostra pace ❤️*

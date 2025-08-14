@@ -75,7 +75,7 @@ describe('DatastoreServer <-> DatastoreClient', function () {
         await new Promise(resolve => setTimeout(resolve, 150)); 
         assert.strictEqual(client_synchroset.find('dog1').id, 'dog1');
 
-        // Make sure the client did not try to apply the updates payload (this tests the checksup check)
+        // Make sure the client did not try to apply the updates payload (this tests the checksum check)
         assert.ok(!errors.some(e => e.includes('already exists')), 'client should skip applying irrelevant updates');
 
         // Anything else

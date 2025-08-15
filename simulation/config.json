@@ -19,7 +19,7 @@
         "type": "line",
         "fg": "green"
       },
-      "label": " Server Dogs ",
+      "label": " Server ",
       "scrollable": true,
       "alwaysScroll": true,
       "mouse": true,
@@ -37,14 +37,14 @@
       "tags": true,
       "border": {
         "type": "line",
-        "fg": "blue"
+        "fg": "green"
       },
-      "label": " Client Dogs ",
+      "label": " Client ",
       "scrollable": true,
       "alwaysScroll": true,
       "mouse": true,
       "style": {
-        "fg": "blue",
+        "fg": "green",
         "bg": "black"
       }
     },
@@ -60,10 +60,22 @@
       "scrollable": true,
       "alwaysScroll": true,
       "mouse": true,
+      "keys": true,
+      "vi": false,
       "tags": true,
+      "clickable": true,
+      "input": true,
+      "keyable": true,
+      "focused": false,
+      "grabKeys": false,
       "style": {
         "fg": "white",
-        "bg": "black"
+        "bg": "black",
+        "focus": {
+          "border": {
+            "fg": "yellow"
+          }
+        }
       }
     },
     "instructions_box": {
@@ -71,7 +83,7 @@
       "left": 0,
       "width": "100%",
       "height": 1,
-      "content": "{bold}Commands: {yellow-fg}[a]{/yellow-fg} Add Dog  {red-fg}[d]{/red-fg} Delete Dog  {magenta-fg}[q]{/magenta-fg} Quit{/bold}",
+      "content": "{bold}Commands: {yellow-fg}[a]{/yellow-fg} Add Dog  {red-fg}[d]{/red-fg} Delete Dog  {cyan-fg}[Ctrl+L]{/cyan-fg} Copy Log  {green-fg}[Ctrl+S]{/green-fg} Save Log  {magenta-fg}[q]{/magenta-fg} Quit{/bold}",
       "tags": true,
       "style": {
         "bg": "black",

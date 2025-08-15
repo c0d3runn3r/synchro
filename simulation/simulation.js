@@ -19,6 +19,9 @@ class SimulationDisplay {
         this.log_box = blessed.log(config.blessed.log_box);
         this.instructions_box = blessed.box(config.blessed.instructions_box);
 
+        // Store clean log messages for copying/saving
+        this.clean_log_messages = [];
+
         // Append all boxes to screen
         this.screen.append(this.server_box);
         this.screen.append(this.client_box);
@@ -29,24 +32,108 @@ class SimulationDisplay {
         this.screen.key(['escape', 'q', 'C-c'], () => {
             return process.exit(0);
         });
+        
+        // Add copy and save functionality
+        this.screen.key(['C-l'], () => {
+            this.copy_log_to_clipboard();
+        });
+        
+        this.screen.key(['C-s'], () => {
+            this.save_log_to_file();
+        });
 
         // Render the screen initially
         this.screen.render();
     }
 
+    // Method to strip blessed color tags
+    strip_blessed_tags(text) {
+        return text.replace(/\{[^}]*\}/g, '');
+    }
+
     // Method that receives yalls formatted output
-    log(message) {
+    log(message, clean_message = null) {
         this.log_box.log(message);
+        
+        // Store clean version for copying/saving
+        const clean = clean_message || this.strip_blessed_tags(message);
+        this.clean_log_messages.push(clean);
+        
+        // Keep only the last 100 messages
+        if (this.clean_log_messages.length > 100) {
+            this.clean_log_messages.shift();
+        }
+        
         this.screen.render();
     }
 
+    // Copy clean log content to clipboard
+    copy_log_to_clipboard() {
+        const { execSync } = require('child_process');
+        
+        try {
+            const log_content = this.clean_log_messages.join('\n');
+            execSync(`echo ${JSON.stringify(log_content)} | pbcopy`);
+            
+            // Show temporary message
+            const original_label = this.log_box.options.label;
+            this.log_box.setLabel(' Log Messages - Copied to Clipboard! ');
+            this.screen.render();
+            
+            setTimeout(() => {
+                this.log_box.setLabel(original_label);
+                this.screen.render();
+            }, 2000);
+            
+        } catch (error) {
+            const original_label = this.log_box.options.label;
+            this.log_box.setLabel(' Log Messages - Copy Failed ');
+            this.screen.render();
+            setTimeout(() => {
+                this.log_box.setLabel(original_label);
+                this.screen.render();
+            }, 2000);
+        }
+    }
+    
+    // Save clean log content to file
+    save_log_to_file() {
+        const fs = require('fs');
+        
+        try {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `simulation-log-${timestamp}.txt`;
+            const log_content = this.clean_log_messages.join('\n');
+            
+            fs.writeFileSync(filename, log_content);
+            
+            const original_label = this.log_box.options.label;
+            this.log_box.setLabel(` Log Messages - Saved to ${filename} `);
+            this.screen.render();
+            
+            setTimeout(() => {
+                this.log_box.setLabel(original_label);
+                this.screen.render();
+            }, 3000);
+            
+        } catch (error) {
+            const original_label = this.log_box.options.label;
+            this.log_box.setLabel(' Log Messages - Save Failed ');
+            this.screen.render();
+            setTimeout(() => {
+                this.log_box.setLabel(original_label);
+                this.screen.render();
+            }, 2000);
+        }
+    }
+
     render(server_items, client_items) {
-        // Update server box with green colored content
-        const server_content = (server_items || []).map(item => `{green-fg}${item.toString()}{/green-fg}`).join('\n');
+        // Update server box content
+        const server_content = (server_items || []).map(item => item.toString()).join('\n');
         this.server_box.setContent(server_content);
         
-        // Update client box with blue colored content
-        const client_content = (client_items || []).map(item => `{blue-fg}${item.toString()}{/blue-fg}`).join('\n');
+        // Update client box content
+        const client_content = (client_items || []).map(item => item.toString()).join('\n');
         this.client_box.setContent(client_content);
         
         // Render the screen
@@ -112,22 +199,22 @@ class DogSimulation {
 
     setup_event_listeners() {
         this.server_synchroset.on('added', (event) => {
-            this.logger.info(`Server: Added ${event.item.name}`);
+            this.logger.info(`server SynchroSet#added ${event.item.name}`);
             this.render();
         });
         
         this.server_synchroset.on('removed', (event) => {
-            this.logger.info(`Server: Removed ${event.item.name}`);
+            this.logger.info(`server SynchroSet#removed ${event.item.name}`);
             this.render();
         });
         
         this.client_synchroset.on('added', (event) => {
-            this.logger.info(`Client: Added ${event.item.name}`);
+            this.logger.info(`client SynchroSet#added ${event.item.name}`);
             this.render();
         });
         
         this.client_synchroset.on('removed', (event) => {
-            this.logger.info(`Client: Removed ${event.item.name}`);
+            this.logger.info(`client SynchroSet#removed ${event.item.name}`);
             this.render();
         });
     }
@@ -135,11 +222,16 @@ class DogSimulation {
     setup_input() {
         // Use blessed's built-in key handling
         this.display.screen.key(['a'], () => {
-            this.add_dog();
+            this.server_synchroset.add(new Dog());
         });
         
         this.display.screen.key(['d'], () => {
-            this.delete_dog();
+            const dog = this.server_synchroset.all()[0];
+            if (dog) {
+                this.server_synchroset.remove(dog);
+            } else {
+                this.logger.info('No dogs to remove');
+            }
         });
         
         this.display.screen.key(['q', 'escape', 'C-c'], () => {
@@ -147,32 +239,6 @@ class DogSimulation {
         });
     }
 
-    add_dog() {
-        try {
-            const dog = new Dog();
-            this.server_synchroset.add(dog);
-            this.logger.info(`Adding new dog: ${dog.name}`);
-        } catch (error) {
-            this.logger.error(`Failed to add dog: ${error.message}`);
-            this.logger.error(`Stack: ${error.stack}`);
-        }
-    }
-
-    delete_dog() {
-        try {
-            const dogs = this.server_synchroset.all();
-            if (dogs.length > 0) {
-                const dog = dogs[0];
-                this.server_synchroset.remove(dog);
-                this.logger.info(`Removing dog: ${dog.name}`);
-            } else {
-                this.logger.info('No dogs to remove');
-            }
-        } catch (error) {
-            this.logger.error(`Failed to delete dog: ${error.message}`);
-            this.logger.error(`Stack: ${error.stack}`);
-        }
-    }
 
     render() {
         const server_items = this.server_synchroset.all();

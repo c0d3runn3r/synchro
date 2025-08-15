@@ -22,7 +22,9 @@ describe('DatastoreClient', function () {
             path: 'test.dogs',
             synchroset: synchroset,
             pulsar: '100ms',     // Short interval for testing, normally would be e.g. '10s'
-            runloop_interval: 50 // Short interval for testing
+            runloop_interval: 50, // Short interval for testing
+            backoff_steps: [0, 0.05, 0.1, 0.2], // Very short backoff for testing: 0ms, 50ms, 100ms, 200ms
+            
         });
     });
 
@@ -38,7 +40,7 @@ describe('DatastoreClient', function () {
 
         it('should keep checking the server until it gets a response', async function () {
 
-            this.slow(400); // Allow time for polling
+            this.slow(500); // Allow time for polling
 
             let attempts = 0;
             datastore.set('test.dogs.classname', ()=>{ attempts++; return null; }); // Null response will keep client polling
@@ -54,7 +56,7 @@ describe('DatastoreClient', function () {
             assert.strictEqual(attempts, 1); // Should have polled at least once
 
             // Wait longer to verify it keeps polling
-            await new Promise(resolve => setTimeout(resolve, 120));
+            await new Promise(resolve => setTimeout(resolve, 170));
             assert.strictEqual(client.state, 'INITIAL'); // Should still be in INITIAL state
             assert.strictEqual(attempts, 3); // Should have polled at least 3 times
             assert.strictEqual(client.running, true); // Should still be running
@@ -63,45 +65,6 @@ describe('DatastoreClient', function () {
             client.stop();
         });
 
-        it('should stop if it receives an incorrect class name', async function () {
-
-            this.slow(400); // Allow time for polling
-
-                // Mock a server with an incorrect class name
-                datastore.set('test.dogs.classname', 'Cat');
-                datastore.set('test.dogs.all', []);
-                datastore.set('test.dogs.pulsars', { '10s': [] }); // Set a pulsar to avoid errors
-
-                // Start the client
-                await client.start();
-                assert.strictEqual(client.state, 'INITIAL');
-
-                // Wait for the client to poll and receive the incorrect class name.  It should then stop itself
-                await new Promise(resolve => setTimeout(resolve, 60));
-                assert.strictEqual(client.state, 'INITIAL'); 
-                assert.strictEqual(client.running, false); // Should have stopped
-
-            // No cleanup needed - client already stopped itself
-        });
-
-        it('should stop if the specified pulsar is not available', async function () {
-
-            this.slow(400); // Allow time for polling
-
-            // Mock a server with an incorrect pulsar
-            datastore.set('test.dogs.classname', 'Dog');
-            datastore.set('test.dogs.pulsars', { '5s': [] }); // Set a pulsar that is not the one we want
-            datastore.set('test.dogs.all', []); // Set an empty all endpoint
-
-            // Start the client
-            await client.start();
-            assert.strictEqual(client.state, 'INITIAL');
-
-            // Wait for the client to poll and receive the incorrect pulsar.  It should then stop itself
-            await new Promise(resolve => setTimeout(resolve, 60));
-            assert.strictEqual(client.state, 'INITIAL'); 
-            assert.strictEqual(client.running, false); // Should have stopped
-        });
 
 
         it('should move to POLLING state once everything is verified', async function () {

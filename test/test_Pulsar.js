@@ -156,4 +156,120 @@ describe('Pulsar', function () {
         assert.strictEqual(event.item.id, 'item1');
     });
 
+    describe('checksum tracking with SynchroSet', function () {
+
+        // Helper class for testing
+        class TestItem extends SynchroItem {
+            #name;
+            #id;
+            constructor(id) {
+                super();
+                this.#id = id;
+                this.observed_properties = ['name'];
+            }
+
+            get id() { return this.#id; }
+            set name(value) { this.#name = value; this.dirty(); }
+            get name() { return this.#name; }
+        }
+
+        it('should provide correct start and end checksums when transmitting through Pulsar', function () {
+            // Track all transmitted bundles
+            const transmittedBundles = [];
+            const p = new Pulsar({
+                include_checksums: true,
+                interval: 0 // Manual triggering
+            });
+            
+            p.transmit = (bundle) => {
+                transmittedBundles.push(bundle);
+            };
+            
+            // Set up SynchroSet with Pulsar
+            const test_set = new SynchroSet(TestItem);
+            test_set.transmit = p;
+            
+            // Get the initial empty set checksum
+            const emptyChecksum = test_set.checksum;
+            
+            // Add an item and trigger transmission
+            const test_item = new TestItem("test-id");
+            test_set.add(test_item);
+            p.trigger();
+            
+            // Verify we got a transmission
+            assert.strictEqual(transmittedBundles.length, 1);
+            const bundle = transmittedBundles[0];
+            assert.strictEqual(bundle.length, 2); // metadata + event
+            
+            // Parse and verify the checksum metadata
+            const metadata = JSON.parse(bundle[0]);
+            assert.strictEqual(metadata.event_name, 'comment');
+            assert.strictEqual(metadata._metadata, true);
+            assert.strictEqual(metadata.start_checksum, emptyChecksum, 'Start checksum should be the empty set checksum');
+            assert.strictEqual(metadata.end_checksum, test_set.checksum, 'End checksum should be the current set checksum');
+            assert.notStrictEqual(metadata.start_checksum, metadata.end_checksum, 'Start and end checksums should be different');
+            
+            // Verify the event payload
+            const event = JSON.parse(bundle[1]);
+            assert.strictEqual(event.event_name, 'added');
+            assert.strictEqual(event.item.id, test_item.id);
+        });
+
+        it('should maintain correct checksum sequence across multiple operations', function () {
+            const transmittedBundles = [];
+            const p = new Pulsar({
+                include_checksums: true,
+                interval: 0
+            });
+            
+            p.transmit = (bundle) => {
+                transmittedBundles.push(bundle);
+            };
+            
+            const test_set = new SynchroSet(TestItem);
+            test_set.transmit = p;
+            
+            // Get the initial empty set checksum
+            const initialChecksum = test_set.checksum;
+            
+            // Perform multiple operations without triggering transmission
+            const test_item = new TestItem("test-id");
+            test_set.add(test_item);
+            
+            const test_item2 = new TestItem('test-id-2');
+            test_set.add(test_item2);
+            
+            test_set.remove(test_item);
+            
+            // Get the final checksum after all operations
+            const finalChecksum = test_set.checksum;
+            
+            // Now trigger a single transmission with all operations bundled
+            p.trigger();
+            
+            // Verify we got one transmission
+            assert.strictEqual(transmittedBundles.length, 1);
+            const bundle = transmittedBundles[0];
+            
+            // Should have metadata + the bundled events (add test_item + add test_item2 + remove test_item)
+            // But due to collapsing, add test_item followed by remove test_item should cancel out
+            // So we should have: metadata + add test_item2
+            assert.strictEqual(bundle.length, 2); // metadata + add test_item2
+            
+            // Parse and verify the checksum metadata
+            const metadata = JSON.parse(bundle[0]);
+            assert.strictEqual(metadata.event_name, 'comment');
+            assert.strictEqual(metadata._metadata, true);
+            assert.strictEqual(metadata.start_checksum, initialChecksum, 'Start checksum should be the initial empty set checksum');
+            assert.strictEqual(metadata.end_checksum, finalChecksum, 'End checksum should be the final set checksum');
+            
+            // Verify the bundled event (should only be the add of test_item2 due to collapsing)
+            const event = JSON.parse(bundle[1]);
+            assert.strictEqual(event.event_name, 'added');
+            assert.strictEqual(event.item.id, test_item2.id);
+        });
+
+    });
+
 });

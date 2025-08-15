@@ -234,7 +234,10 @@ For detailed API documentation, see [docs/API.md](docs/API.md).
 - [x] Update the client so it checks before/after checksums and only applies needed payloads
 - [x] Remove unneeded synchroset event
 - [x] Make sure the test from part 1 passes
-- [ ] Capture out-of-sync problems and refresh (write a test, update the client, etc)
+- [x] add exponential backoff and resync to the client
+- [ ] add a flaky server test and make sure the client is backinf off and retrying 
+- [ ] make the client detect out of sync problems and set a state variable
+- [ ] make a test that forces the client to be out of sync and tests the state variable and automatic resync
 
 ## License
 
@@ -242,4 +245,4 @@ ISC
 
 ---
 
-*E 'n la sua volontade è nostra pace ❤️*
+*E'n la sua volontade è nostra pace ❤️*

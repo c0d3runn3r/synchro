@@ -124,7 +124,7 @@ class SimulationDisplay {
                 this.log_box.setLabel(original_label);
                 this.screen.render();
             }, 2000);
-        }q
+        }
     }
 
     render(server_items, client_items) {
@@ -143,6 +143,11 @@ class SimulationDisplay {
         this.client_box.setContent(client_content);
         
         // Render the screen
+        this.screen.render();
+    }
+
+    update_instructions(instructions) {
+        this.instructions_box.setContent(instructions);
         this.screen.render();
     }
 
@@ -291,7 +296,8 @@ class DogSimulation {
         this.autorun_enabled = !this.autorun_enabled;
         
         if (this.autorun_enabled) {
-            this.logger.info('Autorun enabled - automatic actions every 100ms');
+            // Update instructions to show autorun is enabled
+            this.display.update_instructions('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun (ENABLED), [q] to quit');
             // Start autorun timer
             if (this.autorun_timer) {
                 clearInterval(this.autorun_timer);
@@ -301,7 +307,8 @@ class DogSimulation {
                 this.perform_random_action();
             }, 100);
         } else {
-            this.logger.info('Autorun disabled');
+            // Update instructions to show autorun is disabled
+            this.display.update_instructions('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun, [q] to quit');
             // Stop autorun timer
             if (this.autorun_timer) {
                 clearInterval(this.autorun_timer);
@@ -379,7 +386,9 @@ class DogSimulation {
 
     async start() {
         this.logger.info('Starting Dog Synchronization Simulation...');
-        this.logger.info('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun, [q] to quit');
+        
+        // Set initial instructions
+        this.display.update_instructions('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun, [q] to quit');
         
         // Start server
         await this.server.start();

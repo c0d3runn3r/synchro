@@ -1,7 +1,8 @@
 {
   "blessed": {
     "screen": {
-      "smartCSR": true,
+      "smartCSR": false,
+      "useBCE": false,
       "title": "Dog Synchronization Simulation",
       "unicode": true,
       "fullUnicode": true,

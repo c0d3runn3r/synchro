@@ -124,10 +124,16 @@ class SimulationDisplay {
                 this.log_box.setLabel(original_label);
                 this.screen.render();
             }, 2000);
-        }
+        }q
     }
 
     render(server_items, client_items) {
+
+        // This is stupid but it seems to be one of the only reliable ways to get the dang boxes to actually empty
+        this.server_box.setContent(Array(30).fill('........................................................').join('\n'));
+        this.client_box.setContent(Array(30).fill('........................................................').join('\n'));
+        this.screen.render();
+
         // Update server box content
         const server_content = (server_items || []).map(item => item.toString()).join('\n');
         this.server_box.setContent(server_content);
@@ -152,6 +158,10 @@ class DogSimulation {
         this.server_synchroset = new SynchroSet(Dog);
         this.client_synchroset = new SynchroSet(Dog);
         this.color_converter = new ColorConverter();
+        
+        // Autorun state
+        this.autorun_enabled = false;
+        this.autorun_timer = null;
         
         // Create a yalls logger using callback that sends formatted output to blessed
         this.logger = Logger.callback((type, formatted_message) => {
@@ -208,6 +218,11 @@ class DogSimulation {
             this.render();
         });
         
+        this.server_synchroset.on('changed', (event) => {
+            this.logger.info(`server SynchroSet#changed ${event.item.name} ${event.event.property}`);
+            this.render();
+        });
+        
         this.client_synchroset.on('added', (event) => {
             this.logger.info(`client SynchroSet#added ${event.item.name}`);
             this.render();
@@ -215,6 +230,11 @@ class DogSimulation {
         
         this.client_synchroset.on('removed', (event) => {
             this.logger.info(`client SynchroSet#removed ${event.item.name}`);
+            this.render();
+        });
+        
+        this.client_synchroset.on('changed', (event) => {
+            this.logger.info(`client SynchroSet#changed ${event.item.name} ${event.event.property}`);
             this.render();
         });
     }
@@ -234,9 +254,120 @@ class DogSimulation {
             }
         });
         
+        this.display.screen.key(['b'], () => {
+            this.toggle_random_dog_barking();
+        });
+        
+        this.display.screen.key(['space'], () => {
+            this.toggle_autorun();
+        });
+        
         this.display.screen.key(['q', 'escape', 'C-c'], () => {
             this.quit();
         });
+    }
+
+    toggle_random_dog_barking() {
+        const dogs = this.server_synchroset.all();
+        if (dogs.length === 0) {
+            this.logger.info('No dogs to toggle barking');
+            return;
+        }
+        
+        // Pick a random dog
+        const random_index = Math.floor(Math.random() * dogs.length);
+        const random_dog = dogs[random_index];
+        
+        // Toggle its barking status
+        random_dog.barking = !random_dog.barking;
+        
+        const action = random_dog.barking ? 'started' : 'stopped';
+        this.logger.info(`${random_dog.name} ${action} barking`);
+        
+        // No need to call this.render() - the 'changed' event will handle it
+    }
+
+    toggle_autorun() {
+        this.autorun_enabled = !this.autorun_enabled;
+        
+        if (this.autorun_enabled) {
+            this.logger.info('Autorun enabled - automatic actions every 100ms');
+            // Start autorun timer
+            if (this.autorun_timer) {
+                clearInterval(this.autorun_timer);
+            }
+            
+            this.autorun_timer = setInterval(() => {
+                this.perform_random_action();
+            }, 100);
+        } else {
+            this.logger.info('Autorun disabled');
+            // Stop autorun timer
+            if (this.autorun_timer) {
+                clearInterval(this.autorun_timer);
+                this.autorun_timer = null;
+            }
+        }
+    }
+
+    perform_random_action() {
+        const dogs = this.server_synchroset.all();
+        const dog_count = dogs.length;
+        const barking_count = dogs.filter(dog => dog.barking).length;
+        
+        // Calculate probabilities to maintain ~20 dogs and ~2 barking
+        const target_dogs = 20;
+        const target_barking = 2;
+        
+        // Adjust probabilities based on current state
+        let add_weight = Math.max(0, target_dogs - dog_count) * 2 + 1;
+        let remove_weight = Math.max(0, dog_count - target_dogs) * 2 + (dog_count > 1 ? 1 : 0);
+        let bark_weight = Math.max(0, target_barking - barking_count) * 3 + 1;
+        let stop_bark_weight = Math.max(0, barking_count - target_barking) * 3 + (barking_count > 0 ? 1 : 0);
+        
+        // Ensure minimum weights
+        if (dog_count === 0) {
+            add_weight = 10;
+            remove_weight = 0;
+            bark_weight = 0;
+            stop_bark_weight = 0;
+        }
+        
+        const total_weight = add_weight + remove_weight + bark_weight + stop_bark_weight;
+        const random = Math.random() * total_weight;
+        
+        let current_weight = 0;
+        
+        if (random < (current_weight += add_weight)) {
+            // Add random dog
+            const new_dog = new Dog();
+            this.server_synchroset.add(new_dog);
+            this.logger.debug(`Autorun: Added ${new_dog.name}`);
+        } else if (random < (current_weight += remove_weight)) {
+            // Remove random dog
+            if (dogs.length > 1) {
+                const random_index = Math.floor(Math.random() * dogs.length);
+                const dog_to_remove = dogs[random_index];
+                this.server_synchroset.remove(dog_to_remove);
+                this.logger.debug(`Autorun: Removed ${dog_to_remove.name}`);
+            }
+        } else if (random < (current_weight += bark_weight)) {
+            // Make dog bark
+            const non_barking_dogs = dogs.filter(dog => !dog.barking);
+            if (non_barking_dogs.length > 0) {
+                const random_dog = non_barking_dogs[Math.floor(Math.random() * non_barking_dogs.length)];
+                random_dog.barking = true;
+                this.logger.debug(`Autorun: ${random_dog.name} started barking`);
+            }
+        } else {
+            // Make dog stop barking
+            const barking_dogs = dogs.filter(dog => dog.barking);
+            if (barking_dogs.length > 0) {
+                const random_dog = barking_dogs[Math.floor(Math.random() * barking_dogs.length)];
+                random_dog.barking = false;
+                this.logger.debug(`Autorun: ${random_dog.name} stopped barking`);
+            }
+        }
     }
 
 
@@ -248,7 +379,7 @@ class DogSimulation {
 
     async start() {
         this.logger.info('Starting Dog Synchronization Simulation...');
-        this.logger.info('Press [a] to add dogs, [d] to delete dogs, [q] to quit');
+        this.logger.info('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun, [q] to quit');
         
         // Start server
         await this.server.start();
@@ -270,6 +401,12 @@ class DogSimulation {
 
     quit() {
         this.logger.info('Shutting down simulation...');
+        
+        // Stop autorun timer
+        if (this.autorun_timer) {
+            clearInterval(this.autorun_timer);
+            this.autorun_timer = null;
+        }
         
         if (this.client.running) {
             this.client.stop();

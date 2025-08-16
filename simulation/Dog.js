@@ -3,7 +3,7 @@ const SynchroItem = require('../lib/SynchroItem');
 class Dog extends SynchroItem {
     constructor(id) {
         super(id);
-        this.observed_properties = ['name', 'age'];
+        this.observed_properties = ['name', 'age', 'barking'];
         
         // Auto-generate name if not provided
         if (!this._name) {
@@ -14,6 +14,12 @@ class Dog extends SynchroItem {
         if (!this._age) {
             this._age = this._random_age();
         }
+        
+        // Initialize barking to false if not provided
+        if (this._barking === undefined) {
+            this._barking = false;
+        }
+        
         this.dirty();
     }
 
@@ -33,6 +39,15 @@ class Dog extends SynchroItem {
     
     get age() {
         return this._age;
+    }
+
+    set barking(value) {
+        this._barking = value;
+        this.dirty();
+    }
+    
+    get barking() {
+        return this._barking;
     }
 
     /**
@@ -79,13 +94,11 @@ class Dog extends SynchroItem {
 
     /**
      * String representation of the dog
-     * @returns {string} A formatted string showing the dog's name and age
+     * @returns {string} A formatted string showing the dog's name, age, and barking status
      */
     toString() {
         // Ensure the string is properly encoded
-        const nameStr = String(this.name);
-        const ageStr = String(this.age);
-        return `Dog { name = ${nameStr}, age = ${ageStr} }`;
+        return `Dog { name = ${String(this.name)}, age = ${String(this.age)}, ${this.barking?'BARKING':''} }`;
     }
 }
 

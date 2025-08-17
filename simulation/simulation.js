@@ -152,6 +152,14 @@ class SimulationDisplay {
         this.screen.render();
     }
 
+    update_client_sync_status(synchronized) {
+        const status_text = synchronized ? 
+            '{inverse}{green-fg} SYNCHRONIZED {/green-fg}{/inverse}' : 
+            '{inverse}{red-fg} NOT SYNCHRONIZED {/red-fg}{/inverse}';
+        this.client_box.setLabel(` Client - ${status_text} `);
+        this.screen.render();
+    }
+
     destroy() {
         this.screen.destroy();
     }
@@ -224,6 +232,12 @@ class DogSimulation {
         this.client_synchroset.on('added', (event) => { this.logger.info(`client SynchroSet#added ${event.item.name}`); this.render(); });
         this.client_synchroset.on('removed', (event) => { this.logger.info(`client SynchroSet#removed ${event.item.name}`); this.render(); });
         this.client_synchroset.on('changed', (event) => { this.logger.info(`client SynchroSet#changed ${event.item.name} ${event.event.property}`); this.render(); });
+        
+        // Listen for synchronization changes
+        this.client.on('synchronization', (old_value, new_value) => {
+            this.logger.info(`DatastoreClient synchronization changed: ${old_value} -> ${new_value}`);
+            this.display.update_client_sync_status(new_value);
+        });
         
         // Set up keyboard input
         this.display.screen.key(['a'], () => this.server_synchroset.add(new Dog()));
@@ -359,6 +373,9 @@ class DogSimulation {
         
         // Set initial instructions
         this.update_instructions();
+        
+        // Set initial sync status
+        this.display.update_client_sync_status(this.client.synchronized);
         
         // Start server
         await this.server.start();

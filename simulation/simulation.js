@@ -7,6 +7,7 @@ const { Logger } = require('yalls');
 const Dog = require('./Dog');
 const blessed = require('neo-blessed');
 const ColorConverter = require('./ColorConverter');
+const Corrupt = require('./Corrupt');
 const config = require('./config.json');
 
 class SimulationDisplay {
@@ -159,7 +160,7 @@ class SimulationDisplay {
 class DogSimulation {
     constructor() {
         this.display = new SimulationDisplay();
-        this.datastore = new Entangld();
+        const datastore = new Entangld();
         this.server_synchroset = new SynchroSet(Dog);
         this.client_synchroset = new SynchroSet(Dog);
         this.color_converter = new ColorConverter();
@@ -168,6 +169,9 @@ class DogSimulation {
         this.autorun_enabled = false;
         this.autorun_timer = null;
         
+        // Corruption handler
+        this._corruptor = new Corrupt();
+
         // Create a yalls logger using callback that sends formatted output to blessed
         this.logger = Logger.callback((type, formatted_message) => {
             // Convert ANSI color codes to blessed format
@@ -178,7 +182,7 @@ class DogSimulation {
         
         // Create server
         this.server = new DatastoreServer({
-            datastore: this.datastore,
+            datastore: datastore,
             base_path: 'simulation',
             synchroset: this.server_synchroset,
             update_intervals: [1],
@@ -187,11 +191,19 @@ class DogSimulation {
         
         // Create client and use our display logger
         this.client = new DatastoreClient({
-            datastore: this.datastore,
+            datastore: { get: async (key) => { 
+            
+                if(key == "simulation.dogs.pulsars.1s") {
+
+                   return this._corruptor.corrupt(await datastore.get(key));
+
+                } else {
+                    return await datastore.get(key);
+                }
+             } },
             path: 'simulation.dogs',
             pulsar: '1s',
             synchroset: this.client_synchroset,
-            allow_empty_transmissions: true,
             logger: this.logger.create_child("client")
         });
                 
@@ -206,71 +218,23 @@ class DogSimulation {
         });
         
         // Set up event listeners
-        this.setup_event_listeners();
+        this.server_synchroset.on('added', (event) => { this.logger.info(`server SynchroSet#added ${event.item.name}`); this.render(); });
+        this.server_synchroset.on('removed', (event) => { this.logger.info(`server SynchroSet#removed ${event.item.name}`); this.render(); });
+        this.server_synchroset.on('changed', (event) => { this.logger.info(`server SynchroSet#changed ${event.item.name} ${event.event.property}`); this.render();  });
+        this.client_synchroset.on('added', (event) => { this.logger.info(`client SynchroSet#added ${event.item.name}`); this.render(); });
+        this.client_synchroset.on('removed', (event) => { this.logger.info(`client SynchroSet#removed ${event.item.name}`); this.render(); });
+        this.client_synchroset.on('changed', (event) => { this.logger.info(`client SynchroSet#changed ${event.item.name} ${event.event.property}`); this.render(); });
         
         // Set up keyboard input
-        this.setup_input();
+        this.display.screen.key(['a'], () => this.server_synchroset.add(new Dog()));
+        this.display.screen.key(['d'], () => { const dog = this.server_synchroset.all()[0]; dog ? this.server_synchroset.remove(dog) : this.logger.info('No dogs to remove'); });
+        this.display.screen.key(['b'], () => this.toggle_random_dog_barking());
+        this.display.screen.key(['space'], () => this.toggle_autorun());
+        this.display.screen.key(['c'], () => { this._corruptor.toggle(); this.update_instructions(); });
+        this.display.screen.key(['q', 'escape', 'C-c'], () => this.quit());
     }
 
-    setup_event_listeners() {
-        this.server_synchroset.on('added', (event) => {
-            this.logger.info(`server SynchroSet#added ${event.item.name}`);
-            this.render();
-        });
-        
-        this.server_synchroset.on('removed', (event) => {
-            this.logger.info(`server SynchroSet#removed ${event.item.name}`);
-            this.render();
-        });
-        
-        this.server_synchroset.on('changed', (event) => {
-            this.logger.info(`server SynchroSet#changed ${event.item.name} ${event.event.property}`);
-            this.render();
-        });
-        
-        this.client_synchroset.on('added', (event) => {
-            this.logger.info(`client SynchroSet#added ${event.item.name}`);
-            this.render();
-        });
-        
-        this.client_synchroset.on('removed', (event) => {
-            this.logger.info(`client SynchroSet#removed ${event.item.name}`);
-            this.render();
-        });
-        
-        this.client_synchroset.on('changed', (event) => {
-            this.logger.info(`client SynchroSet#changed ${event.item.name} ${event.event.property}`);
-            this.render();
-        });
-    }
 
-    setup_input() {
-        // Use blessed's built-in key handling
-        this.display.screen.key(['a'], () => {
-            this.server_synchroset.add(new Dog());
-        });
-        
-        this.display.screen.key(['d'], () => {
-            const dog = this.server_synchroset.all()[0];
-            if (dog) {
-                this.server_synchroset.remove(dog);
-            } else {
-                this.logger.info('No dogs to remove');
-            }
-        });
-        
-        this.display.screen.key(['b'], () => {
-            this.toggle_random_dog_barking();
-        });
-        
-        this.display.screen.key(['space'], () => {
-            this.toggle_autorun();
-        });
-        
-        this.display.screen.key(['q', 'escape', 'C-c'], () => {
-            this.quit();
-        });
-    }
 
     toggle_random_dog_barking() {
         const dogs = this.server_synchroset.all();
@@ -289,15 +253,12 @@ class DogSimulation {
         const action = random_dog.barking ? 'started' : 'stopped';
         this.logger.info(`${random_dog.name} ${action} barking`);
         
-        // No need to call this.render() - the 'changed' event will handle it
     }
 
     toggle_autorun() {
         this.autorun_enabled = !this.autorun_enabled;
         
         if (this.autorun_enabled) {
-            // Update instructions to show autorun is enabled
-            this.display.update_instructions('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun (ENABLED), [q] to quit');
             // Start autorun timer
             if (this.autorun_timer) {
                 clearInterval(this.autorun_timer);
@@ -307,14 +268,23 @@ class DogSimulation {
                 this.perform_random_action();
             }, 100);
         } else {
-            // Update instructions to show autorun is disabled
-            this.display.update_instructions('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun, [q] to quit');
             // Stop autorun timer
             if (this.autorun_timer) {
                 clearInterval(this.autorun_timer);
                 this.autorun_timer = null;
             }
         }
+        
+        // Update instructions to show current status
+        this.update_instructions();
+    }
+    
+    update_instructions() {
+        const autorun_status = this.autorun_enabled ? ' (ENABLED)' : '';
+        const corruption_status = this._corruptor.enabled ? ' (ENABLED)' : '';
+        
+        const instructions = `Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun${autorun_status}, [c] to toggle corruption${corruption_status}, [q] to quit`;
+        this.display.update_instructions(instructions);
     }
 
     perform_random_action() {
@@ -388,7 +358,7 @@ class DogSimulation {
         this.logger.info('Starting Dog Synchronization Simulation...');
         
         // Set initial instructions
-        this.display.update_instructions('Press [a] to add dogs, [d] to delete dogs, [b] to toggle random dog barking, [space] to toggle autorun, [q] to quit');
+        this.update_instructions();
         
         // Start server
         await this.server.start();

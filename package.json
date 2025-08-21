@@ -1,6 +1,6 @@
 {
   "name": "@novadynamics/synchro",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "index.js",
   "scripts": {
     "test": "npx mocha",

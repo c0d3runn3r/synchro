@@ -48,13 +48,14 @@ describe('SynchroItem', function () {
             instance.set('testN', 'testValue');
         });
 
-        it('.set() should update an existing notion, emitting a change event', function () {
+        it('.set() should update an existing notion, emitting a change event', function (done) {
 
             instance.set('testN', 'initialValue');
             instance.on('changed', (event) => {
                 assert.strictEqual(event.property, 'testN');
                 assert.strictEqual(event.new_value, 'updatedValue');
                 assert.strictEqual(event.old_value, 'initialValue');
+                done();
             });
 
             instance.set('testN', 'updatedValue');
@@ -67,6 +68,19 @@ describe('SynchroItem', function () {
                 assert.fail('Change event should not be emitted when value and timestamp are the same');
             });
             instance.set('testN', 'testValue', "2023-01-01T00:00:00Z");
+        });
+
+        it('.set() should decide change events based on strict comparison', function (done) {
+
+            instance.set('testN', 0, "2023-01-01T00:00:00Z");
+            instance.on('changed', (event) => {
+                assert.strictEqual(event.property, 'testN');
+                assert.strictEqual(event.new_value, '0');
+                assert.strictEqual(event.old_value, 0);
+                done();
+            });
+
+            instance.set('testN', '0', "2023-01-01T00:00:00Z");
         });
 
         it('.unset() should remove a notion and not emit a change event', function () {
@@ -119,6 +133,19 @@ describe('SynchroItem', function () {
 
             instance.prop1 = 'new1';
             instance.prop2 = 'new2';
+        });
+
+        it('should decide change events based on strict comparison', function (done) {
+
+            instance.prop1 = 0;
+            instance.on('changed', (event) => {
+                assert.strictEqual(event.property, 'prop1');
+                assert.strictEqual(event.new_value, '0');
+                assert.strictEqual(event.old_value, 0);
+                done();
+            });
+
+            instance.prop1 = '0'; // Should emit change event due to type coercion
         });
 
         it('should not emit changed event for non-observed properties', function (done) {
